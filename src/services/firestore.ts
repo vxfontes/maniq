@@ -11,7 +11,7 @@ import {
     serverTimestamp,
     type Timestamp 
 } from 'firebase/firestore';
-import { db } from '../api/key';
+import { db } from '../api/firebase';
 import type { ChatSession, ChatMessage } from '../types';
 
 export class FirestoreService {

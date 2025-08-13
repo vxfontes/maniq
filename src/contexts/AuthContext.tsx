@@ -5,7 +5,7 @@ import {
     signOut as firebaseSignOut,
     type User 
 } from 'firebase/auth';
-import { auth, googleProvider } from '../api/key';
+import { auth, googleProvider } from '../api/firebase';
 import type { AuthContextType, AuthUser } from '../types';
 import { AuthContext } from './auth';
 
