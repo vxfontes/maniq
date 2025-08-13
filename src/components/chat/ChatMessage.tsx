@@ -4,9 +4,10 @@ import { TypewriterMessage } from './TypewriterMessage';
 
 interface ChatMessageProps {
     message: Message;
+    shouldTypewrite?: boolean;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, shouldTypewrite = true }: ChatMessageProps) {
     const isUser = message.role === 'user';
 
     return (
@@ -21,7 +22,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 }`}
             >
                 {message.role === 'assistant' ? (
-                    <TypewriterMessage content={message.content} />
+                    <TypewriterMessage content={message.content} shouldTypewrite={shouldTypewrite} />
                 ) : (
                     <p className="text-base text-white">{message.content}</p>
                 )}
