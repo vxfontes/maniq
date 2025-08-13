@@ -13,6 +13,7 @@ export default function ChatWithHistory() {
         startNewChat,
         loadChatSession,
         getUserMessageCount, 
+        shouldMessageTypewrite,
         hasMessages 
     } = useChat();
     
@@ -114,7 +115,11 @@ export default function ChatWithHistory() {
                     {!hasMessages && <ChatWelcome />}
                     
                     {messages.map((message, index) => (
-                        <ChatMessage key={index} message={message} />
+                        <ChatMessage 
+                            key={index} 
+                            message={message} 
+                            shouldTypewrite={shouldMessageTypewrite(index, message)}
+                        />
                     ))}
                     
                     {isLoading && <ChatLoading hasContext={hasMessages} />}

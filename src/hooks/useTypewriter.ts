@@ -3,7 +3,7 @@ import { parseAIResponse } from '../utils';
 import { CHAT_CONSTANTS } from '../constants';
 import type { ParsedResponse } from '../types';
 
-export function useTypewriter(content: string) {
+export function useTypewriter(content: string, shouldTypewrite: boolean = true) {
     const [displayedText, setDisplayedText] = useState('');
     const [finishedTyping, setFinishedTyping] = useState(false);
     const [parsedResponse, setParsedResponse] = useState<ParsedResponse | null>(null);
@@ -20,6 +20,13 @@ export function useTypewriter(content: string) {
         // Texto para mostrar no typewriter
         const textToDisplay = parsed.reasoning;
 
+        if (!shouldTypewrite) {
+            // Se não deve usar typewriter, mostra tudo de uma vez
+            setDisplayedText(textToDisplay);
+            setFinishedTyping(true);
+            return;
+        }
+
         let i = 0;
         const interval = setInterval(() => {
             setDisplayedText(textToDisplay.slice(0, i + 1));
@@ -31,7 +38,7 @@ export function useTypewriter(content: string) {
         }, CHAT_CONSTANTS.TYPEWRITER_SPEED);
 
         return () => clearInterval(interval);
-    }, [content]);
+    }, [content, shouldTypewrite]);
 
     return {
         displayedText,

@@ -7,6 +7,7 @@ export function useChat() {
     const { user } = useAuth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [lastMessageIndex, setLastMessageIndex] = useState(-1); // Índice da última mensagem antes de carregar/iniciar
 
     // Carrega mensagens na inicialização
     useEffect(() => {
@@ -15,6 +16,7 @@ export function useChat() {
             const savedMessages = storageService.loadMessages();
             if (savedMessages.length > 0) {
                 setMessages(savedMessages);
+                setLastMessageIndex(savedMessages.length - 1); // Todas as mensagens existentes não devem ter typewriter
             }
         }
         // Para usuários logados, as mensagens são carregadas quando uma sessão é selecionada
@@ -43,6 +45,7 @@ export function useChat() {
             };
             
             setMessages(prev => [...prev, assistantMessage]);
+            // Não atualizar lastMessageIndex aqui - novas mensagens devem ter typewriter
         } catch (error) {
             console.error("Erro ao enviar mensagem:", error);
             const errorMessage: Message = { 
@@ -57,11 +60,13 @@ export function useChat() {
 
     const clearHistory = useCallback(() => {
         setMessages([]);
+        setLastMessageIndex(-1);
         storageService.clearMessages();
     }, []);
 
     const startNewChat = useCallback(() => {
         setMessages([]);
+        setLastMessageIndex(-1); // Reset para chat novo
         storageService.startNewChat();
     }, []);
 
@@ -71,6 +76,7 @@ export function useChat() {
         try {
             const sessionMessages = await storageService.loadChatSession(chatId, user);
             setMessages(sessionMessages);
+            setLastMessageIndex(sessionMessages.length - 1); // Mensagens carregadas não devem ter typewriter
         } catch (error) {
             console.error('Erro ao carregar sessão de chat:', error);
         }
@@ -80,6 +86,11 @@ export function useChat() {
         return messages.filter(m => m.role === 'user').length;
     }, [messages]);
 
+    const shouldMessageTypewrite = useCallback((messageIndex: number, message: Message) => {
+        // Apenas mensagens da IA que são novas (índice maior que lastMessageIndex) devem usar typewriter
+        return message.role === 'assistant' && messageIndex > lastMessageIndex;
+    }, [lastMessageIndex]);
+
     return {
         messages,
         isLoading,
@@ -88,6 +99,7 @@ export function useChat() {
         startNewChat,
         loadChatSession,
         getUserMessageCount,
+        shouldMessageTypewrite,
         hasMessages: messages.length > 0
     };
 }
