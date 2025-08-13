@@ -4,3 +4,4 @@ export * from './ChatInput';
 export * from './ChatLoading';
 export * from './ChatWelcome';
 export * from './ChatHeader';
+export * from './ChatHistory';
