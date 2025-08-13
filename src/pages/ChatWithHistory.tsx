@@ -19,6 +19,7 @@ export default function ChatWithHistory() {
     const chatEndRef = useAutoScroll<HTMLDivElement>(messages);
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [refreshHistory, setRefreshHistory] = useState(0);
 
     // Controlar scroll do body quando menu mobile está aberto
     useEffect(() => {
@@ -64,6 +65,7 @@ export default function ChatWithHistory() {
                         onSelectChat={handleSelectChat}
                         onStartNewChat={handleStartNewChat}
                         currentChatId={currentChatId}
+                        refreshTrigger={refreshHistory}
                     />
                 </div>
             )}
@@ -94,6 +96,7 @@ export default function ChatWithHistory() {
                         currentChatId={currentChatId}
                         isMobile={true}
                         onCloseMobile={() => setIsMobileMenuOpen(false)}
+                        refreshTrigger={refreshHistory}
                     />
                 </div>
             )}
@@ -121,11 +124,28 @@ export default function ChatWithHistory() {
 
                 <ChatInput 
                     onSendMessage={async (content) => {
+                        const wasNewChat = !currentChatId && messages.length === 0;
+                        
                         await sendMessage(content);
-                        // Atualizar o ID do chat atual se necessário
-                        if (user && !currentChatId) {
+                        
+                        // Se era uma nova conversa e agora temos mensagens, atualizar histórico
+                        if (user && wasNewChat) {
+                            // Pequeno delay para garantir que o chat foi salvo
+                            setTimeout(() => {
+                                const newChatId = storageService.getCurrentChatId();
+                                if (newChatId && newChatId !== currentChatId) {
+                                    setCurrentChatId(newChatId);
+                                    // Atualizar o histórico para mostrar a nova conversa
+                                    setRefreshHistory(prev => prev + 1);
+                                }
+                            }, 500);
+                        } else if (user && !currentChatId) {
+                            // Para outros casos onde o chat ID pode ter mudado
                             const chatId = storageService.getCurrentChatId();
-                            setCurrentChatId(chatId);
+                            if (chatId !== currentChatId) {
+                                setCurrentChatId(chatId);
+                                setRefreshHistory(prev => prev + 1);
+                            }
                         }
                     }}
                     disabled={isLoading}

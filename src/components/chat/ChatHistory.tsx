@@ -10,6 +10,7 @@ interface ChatHistoryProps {
     currentChatId?: string | null;
     isMobile?: boolean;
     onCloseMobile?: () => void;
+    refreshTrigger?: number;
 }
 
 export function ChatHistory({ 
@@ -17,11 +18,13 @@ export function ChatHistory({
     onStartNewChat, 
     currentChatId, 
     isMobile = false,
-    onCloseMobile 
+    onCloseMobile,
+    refreshTrigger = 0
 }: ChatHistoryProps) {
     const { user } = useAuth();
     const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     useEffect(() => {
         const loadHistory = async () => {
@@ -31,17 +34,25 @@ export function ChatHistory({
             }
 
             try {
+                // Se é um refresh (não o carregamento inicial), mostrar indicador
+                if (refreshTrigger > 0) {
+                    setIsRefreshing(true);
+                } else {
+                    setLoading(true);
+                }
+                
                 const history = await storageService.getUserChatHistory(user);
                 setChatHistory(history);
             } catch (error) {
                 console.error('Erro ao carregar histórico:', error);
             } finally {
                 setLoading(false);
+                setIsRefreshing(false);
             }
         };
 
         loadHistory();
-    }, [user]);
+    }, [user, refreshTrigger]); // Adicionado refreshTrigger como dependência
 
     const handleDeleteChat = async (chatId: string, event: React.MouseEvent) => {
         event.stopPropagation();
@@ -94,6 +105,13 @@ export function ChatHistory({
                     Nova Conversa
                 </Button>
                 
+                {/* Indicador de refresh */}
+                {isRefreshing && (
+                    <div className="ml-3 p-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
+                    </div>
+                )}
+                
                 {/* Botão de fechar para mobile */}
                 {isMobile && onCloseMobile && (
                     <button
@@ -119,42 +137,48 @@ export function ChatHistory({
                     </div>
                 ) : (
                     <div className="space-y-1 p-2">
-                        {chatHistory.map((chat) => (
-                            <div
-                                key={chat.id}
-                                onClick={() => onSelectChat(chat.id)}
-                                className={`p-3 rounded-md cursor-pointer hover:bg-gray-700 transition-colors group ${
-                                    currentChatId === chat.id ? 'bg-gray-700' : ''
-                                }`}
-                            >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="text-white text-sm font-medium truncate">
-                                            {chat.title}
-                                        </h4>
-                                        <p className="text-gray-400 text-xs mt-1">
-                                            {formatDate(chat.updatedAt)}
-                                        </p>
+                        {chatHistory.map((chat, index) => {
+                            // Destacar a conversa atual (recém-criada) com animação
+                            const isCurrentChat = currentChatId === chat.id;
+                            const isNewChat = index === 0 && refreshTrigger > 0 && isCurrentChat;
+                            
+                            return (
+                                <div
+                                    key={chat.id}
+                                    onClick={() => onSelectChat(chat.id)}
+                                    className={`p-3 rounded-md cursor-pointer hover:bg-gray-700 transition-colors group ${
+                                        isCurrentChat ? 'bg-gray-700' : ''
+                                    } ${isNewChat ? 'animate-fade-in-up ring-2 ring-cyan-500 ring-opacity-50' : ''}`}
+                                >
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-white text-sm font-medium truncate">
+                                                {chat.title}
+                                            </h4>
+                                            <p className="text-gray-400 text-xs mt-1">
+                                                {formatDate(chat.updatedAt)}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={(e) => handleDeleteChat(chat.id, e)}
+                                            className={`text-gray-400 hover:text-red-400 transition-all ml-2 p-1 rounded-md hover:bg-gray-600 ${
+                                                isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                            }`}
+                                            title="Deletar conversa"
+                                        >
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path
+                                                    fillRule="evenodd"
+                                                    d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9zM4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v1H4V5zM3 8a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                                                    clipRule="evenodd"
+                                                />
+                                                <path d="M5 11a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zM5 15a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" />
+                                            </svg>
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={(e) => handleDeleteChat(chat.id, e)}
-                                        className={`text-gray-400 hover:text-red-400 transition-all ml-2 p-1 rounded-md hover:bg-gray-600 ${
-                                            isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                                        }`}
-                                        title="Deletar conversa"
-                                    >
-                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9zM4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v1H4V5zM3 8a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-                                                clipRule="evenodd"
-                                            />
-                                            <path d="M5 11a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zM5 15a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" />
-                                        </svg>
-                                    </button>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
